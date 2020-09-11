@@ -17,25 +17,26 @@
 package org.springframework.boot.autoconfigure.condition;
 
 /**
+ * Spring容器搜索bean的话有三种搜索策略
  * Some named search strategies for beans in the bean factory hierarchy.
  *
  * @author Dave Syer
  */
 public enum SearchStrategy {
 
-	/**
-	 * Search only the current context.
-	 */
-	CURRENT,
+    /**
+     * Search only the current context.
+     */
+    CURRENT,
 
-	/**
-	 * Search all ancestors, but not the current context.
-	 */
-	ANCESTORS,
+    /**
+     * Search all ancestors, but not the current context.
+     */
+    ANCESTORS,
 
-	/**
-	 * Search the entire hierarchy.
-	 */
-	ALL
+    /**
+     * Search the entire hierarchy.
+     */
+    ALL
 
 }
