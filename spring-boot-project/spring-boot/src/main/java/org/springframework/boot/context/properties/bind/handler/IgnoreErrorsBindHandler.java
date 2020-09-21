@@ -31,17 +31,22 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyN
  */
 public class IgnoreErrorsBindHandler extends AbstractBindHandler {
 
-	public IgnoreErrorsBindHandler() {
-	}
+    public IgnoreErrorsBindHandler() {
+    }
 
-	public IgnoreErrorsBindHandler(BindHandler parent) {
-		super(parent);
-	}
+    /**
+     * 责任链模式
+     *
+     * @param parent
+     */
+    public IgnoreErrorsBindHandler(BindHandler parent) {
+        super(parent);
+    }
 
-	@Override
-	public Object onFailure(ConfigurationPropertyName name, Bindable<?> target,
-			BindContext context, Exception error) throws Exception {
-		return (target.getValue() != null) ? target.getValue().get() : null;
-	}
+    @Override
+    public Object onFailure(ConfigurationPropertyName name, Bindable<?> target,
+                            BindContext context, Exception error) throws Exception {
+        return (target.getValue() != null) ? target.getValue().get() : null;
+    }
 
 }

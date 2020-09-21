@@ -16,11 +16,6 @@
 
 package org.springframework.boot.context.properties;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
 import org.springframework.beans.PropertyEditorRegistry;
 import org.springframework.boot.context.properties.bind.BindHandler;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -41,7 +36,14 @@ import org.springframework.util.Assert;
 import org.springframework.validation.Validator;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 /**
+ * 属性绑定器
+ * <p>
  * Internal class by the {@link ConfigurationPropertiesBindingPostProcessor} to handle the
  * actual {@link ConfigurationProperties} binding.
  *
@@ -50,123 +52,187 @@ import org.springframework.validation.annotation.Validated;
  */
 class ConfigurationPropertiesBinder {
 
-	private final ApplicationContext applicationContext;
+    private final ApplicationContext applicationContext;
 
-	private final PropertySources propertySources;
+    private final PropertySources propertySources;
 
-	private final Validator configurationPropertiesValidator;
+    private final Validator configurationPropertiesValidator;
 
-	private final boolean jsr303Present;
+    private final boolean jsr303Present;
 
-	private volatile Validator jsr303Validator;
+    private volatile Validator jsr303Validator;
 
-	private volatile Binder binder;
+    private volatile Binder binder;
 
-	ConfigurationPropertiesBinder(ApplicationContext applicationContext,
-			String validatorBeanName) {
-		this.applicationContext = applicationContext;
-		this.propertySources = new PropertySourcesDeducer(applicationContext)
-				.getPropertySources();
-		this.configurationPropertiesValidator = getConfigurationPropertiesValidator(
-				applicationContext, validatorBeanName);
-		this.jsr303Present = ConfigurationPropertiesJsr303Validator
-				.isJsr303Present(applicationContext);
-	}
+    ConfigurationPropertiesBinder(ApplicationContext applicationContext,
+                                  String validatorBeanName) {
+        this.applicationContext = applicationContext;
+        // 将applicationContext封装到PropertySourcesDeducer对象中并返回
+        // 属性源即外部配置值比如application.yaml配置的属性值，
+        // 注意这里的属性源是由ConfigFileApplicationListener这个监听器负责读取的，
+        // ConfigFileApplicationListener将会在后面源码分析章节中详述。
+        this.propertySources = new PropertySourcesDeducer(applicationContext)
+                .getPropertySources(); // 获取属性源，主要用于在ConfigurableListableBeanFactory的后置处理方法postProcessBeanFactory中处理
+        // 如果没有配置validator的话，这里一般返回的是null
+        this.configurationPropertiesValidator = getConfigurationPropertiesValidator(
+                applicationContext, validatorBeanName);
+        // 检查实现JSR-303规范的bean校验器相关类在classpath中是否存在
+        this.jsr303Present = ConfigurationPropertiesJsr303Validator
+                .isJsr303Present(applicationContext);
+    }
 
-	public void bind(Bindable<?> target) {
-		ConfigurationProperties annotation = target
-				.getAnnotation(ConfigurationProperties.class);
-		Assert.state(annotation != null,
-				() -> "Missing @ConfigurationProperties on " + target);
-		List<Validator> validators = getValidators(target);
-		BindHandler bindHandler = getBindHandler(annotation, validators);
-		getBinder().bind(annotation.prefix(), target, bindHandler);
-	}
+    /**
+     * 真正实现绑定的代码！！！
+     *
+     * @param target
+     */
+    public void bind(Bindable<?> target) {
+        //【1】得到@ConfigurationProperties注解
+        ConfigurationProperties annotation = target
+                .getAnnotation(ConfigurationProperties.class);
+        Assert.state(annotation != null,
+                () -> "Missing @ConfigurationProperties on " + target);
+        // 【2】得到Validator对象集合，用于属性校验
+        List<Validator> validators = getValidators(target);
+        // 【3】得到BindHandler对象（默认是IgnoreTopLevelConverterNotFoundBindHandler对象），
+        // 用于对ConfigurationProperties注解的ignoreUnknownFields等属性的处理
+        BindHandler bindHandler = getBindHandler(annotation, validators);
+        // 【4】得到一个Binder对象，并利用其bind方法执行外部属性绑定逻辑
+        /********************【主线，重点关注】********************/
+        // 调用getBinder方法获取用于属性绑定的Binder对象；
+        // 调用Binder对象的bind方法进行外部属性绑定到@ConfigurationProperties注解的XxxProperties类的属性上。 执行绑定
+        getBinder().bind(annotation.prefix(), target, bindHandler);
+    }
 
-	private Validator getConfigurationPropertiesValidator(
-			ApplicationContext applicationContext, String validatorBeanName) {
-		if (applicationContext.containsBean(validatorBeanName)) {
-			return applicationContext.getBean(validatorBeanName, Validator.class);
-		}
-		return null;
-	}
+    private Validator getConfigurationPropertiesValidator(
+            ApplicationContext applicationContext, String validatorBeanName) {
+        if (applicationContext.containsBean(validatorBeanName)) {
+            return applicationContext.getBean(validatorBeanName, Validator.class);
+        }
+        return null;
+    }
 
-	private List<Validator> getValidators(Bindable<?> target) {
-		List<Validator> validators = new ArrayList<>(3);
-		if (this.configurationPropertiesValidator != null) {
-			validators.add(this.configurationPropertiesValidator);
-		}
-		if (this.jsr303Present && target.getAnnotation(Validated.class) != null) {
-			validators.add(getJsr303Validator());
-		}
-		if (target.getValue() != null && target.getValue().get() instanceof Validator) {
-			validators.add((Validator) target.getValue().get());
-		}
-		return validators;
-	}
+    private List<Validator> getValidators(Bindable<?> target) {
+        List<Validator> validators = new ArrayList<>(3);
+        if (this.configurationPropertiesValidator != null) {
+            validators.add(this.configurationPropertiesValidator);
+        }
+        if (this.jsr303Present && target.getAnnotation(Validated.class) != null) {
+            validators.add(getJsr303Validator());
+        }
+        if (target.getValue() != null && target.getValue().get() instanceof Validator) {
+            validators.add((Validator) target.getValue().get());
+        }
+        return validators;
+    }
 
-	private Validator getJsr303Validator() {
-		if (this.jsr303Validator == null) {
-			this.jsr303Validator = new ConfigurationPropertiesJsr303Validator(
-					this.applicationContext);
-		}
-		return this.jsr303Validator;
-	}
+    private Validator getJsr303Validator() {
+        if (this.jsr303Validator == null) {
+            this.jsr303Validator = new ConfigurationPropertiesJsr303Validator(
+                    this.applicationContext);
+        }
+        return this.jsr303Validator;
+    }
 
-	private BindHandler getBindHandler(ConfigurationProperties annotation,
-			List<Validator> validators) {
-		BindHandler handler = new IgnoreTopLevelConverterNotFoundBindHandler();
-		if (annotation.ignoreInvalidFields()) {
-			handler = new IgnoreErrorsBindHandler(handler);
-		}
-		if (!annotation.ignoreUnknownFields()) {
-			UnboundElementsSourceFilter filter = new UnboundElementsSourceFilter();
-			handler = new NoUnboundElementsBindHandler(handler, filter);
-		}
-		if (!validators.isEmpty()) {
-			handler = new ValidationBindHandler(handler,
-					validators.toArray(new Validator[0]));
-		}
-		for (ConfigurationPropertiesBindHandlerAdvisor advisor : getBindHandlerAdvisors()) {
-			handler = advisor.apply(handler);
-		}
-		return handler;
-	}
+    /**
+     * 这里使用了责任链模式 注意BindHandler的设计技巧，应该是责任链模式，非常巧妙，值得借鉴
+     * getBindHandler方法的逻辑很简单，主要是根据传入的@ConfigurationProperties注解和validators校验器来创建不同的BindHandler具体实现类
+     *
+     * @param annotation
+     * @param validators
+     * @return
+     */
+    private BindHandler getBindHandler(ConfigurationProperties annotation,
+                                       List<Validator> validators) {
+        // 新建一个IgnoreTopLevelConverterNotFoundBindHandler对象，这是个默认的BindHandler对象
+        BindHandler handler = new IgnoreTopLevelConverterNotFoundBindHandler();
+        // 若注解@ConfigurationProperties的ignoreInvalidFields属性设置为true，
+        // 则说明可以忽略无效的配置属性例如类型错误，此时新建一个IgnoreErrorsBindHandler对象
+        if (annotation.ignoreInvalidFields()) {
+            handler = new IgnoreErrorsBindHandler(handler);
+        }
+        // 若注解@ConfigurationProperties的ignoreUnknownFields属性设置为true，
+        // 则说明配置文件配置了一些未知的属性配置，此时新建一个ignoreUnknownFields对象
+        if (!annotation.ignoreUnknownFields()) {
+            UnboundElementsSourceFilter filter = new UnboundElementsSourceFilter();
+            handler = new NoUnboundElementsBindHandler(handler, filter);
+        }
+        // 如果@Valid注解不为空，则创建一个ValidationBindHandler对象
+        if (!validators.isEmpty()) {
+            handler = new ValidationBindHandler(handler,
+                    validators.toArray(new Validator[0]));
+        }
+        // 遍历获取的ConfigurationPropertiesBindHandlerAdvisor集合，
+        // ConfigurationPropertiesBindHandlerAdvisor目前只在测试类中有用到
+        for (ConfigurationPropertiesBindHandlerAdvisor advisor : getBindHandlerAdvisors()) {
+            // 对handler进一步处理
+            handler = advisor.apply(handler);
+        }
+        return handler;
+    }
 
-	private List<ConfigurationPropertiesBindHandlerAdvisor> getBindHandlerAdvisors() {
-		return this.applicationContext
-				.getBeanProvider(ConfigurationPropertiesBindHandlerAdvisor.class)
-				.orderedStream().collect(Collectors.toList());
-	}
+    private List<ConfigurationPropertiesBindHandlerAdvisor> getBindHandlerAdvisors() {
+        return this.applicationContext
+                .getBeanProvider(ConfigurationPropertiesBindHandlerAdvisor.class)
+                .orderedStream().collect(Collectors.toList());
+    }
 
-	private Binder getBinder() {
-		if (this.binder == null) {
-			this.binder = new Binder(getConfigurationPropertySources(),
-					getPropertySourcesPlaceholdersResolver(), getConversionService(),
-					getPropertyEditorInitializer());
-		}
-		return this.binder;
-	}
+    /**
+     * 获取用于属性绑定的Binder对象==获取Binder属性绑定器
+     * Binder对象封装了四个对象，分别是...
+     *
+     * @return
+     */
+    private Binder getBinder() {
+        if (this.binder == null) {
+            this.binder = new Binder(getConfigurationPropertySources(),
+                    getPropertySourcesPlaceholdersResolver(), getConversionService(),
+                    getPropertyEditorInitializer());
+        }
+        return this.binder;
+    }
 
-	private Iterable<ConfigurationPropertySource> getConfigurationPropertySources() {
-		return ConfigurationPropertySources.from(this.propertySources);
-	}
+    /**
+     * 1 ConfigurationPropertySource
+     * 外部配置文件的属性源，由监听器ConfigFileApplicationListener监听器负责触发读取
+     *
+     * @return
+     */
+    private Iterable<ConfigurationPropertySource> getConfigurationPropertySources() {
+        return ConfigurationPropertySources.from(this.propertySources);
+    }
 
-	private PropertySourcesPlaceholdersResolver getPropertySourcesPlaceholdersResolver() {
-		return new PropertySourcesPlaceholdersResolver(this.propertySources);
-	}
+    /**
+     * 2 PropertySourcesPlaceholdersResolver
+     * 解析属性源中的占位符${}
+     *
+     * @return
+     */
+    private PropertySourcesPlaceholdersResolver getPropertySourcesPlaceholdersResolver() {
+        return new PropertySourcesPlaceholdersResolver(this.propertySources);
+    }
 
-	private ConversionService getConversionService() {
-		return new ConversionServiceDeducer(this.applicationContext)
-				.getConversionService();
-	}
+    /**
+     * 3 对属性类型进行转换
+     *
+     * @return
+     */
+    private ConversionService getConversionService() {
+        return new ConversionServiceDeducer(this.applicationContext)
+                .getConversionService();
+    }
 
-	private Consumer<PropertyEditorRegistry> getPropertyEditorInitializer() {
-		if (this.applicationContext instanceof ConfigurableApplicationContext) {
-			return ((ConfigurableApplicationContext) this.applicationContext)
-					.getBeanFactory()::copyRegisteredEditorsTo;
-		}
-		return null;
-	}
+    /**
+     * 4 用来配置property editors
+     *
+     * @return
+     */
+    private Consumer<PropertyEditorRegistry> getPropertyEditorInitializer() {
+        if (this.applicationContext instanceof ConfigurableApplicationContext) {
+            return ((ConfigurableApplicationContext) this.applicationContext)
+                    .getBeanFactory()::copyRegisteredEditorsTo;
+        }
+        return null;
+    }
 
 }

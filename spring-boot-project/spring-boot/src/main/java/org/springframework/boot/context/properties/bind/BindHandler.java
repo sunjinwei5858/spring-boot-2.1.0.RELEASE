@@ -19,6 +19,12 @@ package org.springframework.boot.context.properties.bind;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 
 /**
+ * BindHandler是一个父类接口，用于在属性绑定时来处理一些附件逻辑
+ * BindHandler接口定义了onStart,onSuccess,onFailure和onFinish方法，
+ * 这四个方法分别会在执行外部属性绑定时的不同时机会被调用，在属性绑定时用来添加一些额外的处理逻辑，
+ * 比如在onSuccess方法改变最终绑定的属性值或对属性值进行校验，在onFailure方法catch住相关异常或者返回一个替代的绑定的属性值。
+ *
+ * <p>
  * Callback interface that can be used to handle additional logic during element
  * {@link Binder binding}.
  *
@@ -28,66 +34,72 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyN
  */
 public interface BindHandler {
 
-	/**
-	 * Default no-op bind handler.
-	 */
-	BindHandler DEFAULT = new BindHandler() {
+    /**
+     * Default no-op bind handler.
+     */
+    BindHandler DEFAULT = new BindHandler() {
 
-	};
+    };
 
-	/**
-	 * Called when binding of an element starts but before any result has been determined.
-	 * @param <T> the bindable source type
-	 * @param name the name of the element being bound
-	 * @param target the item being bound
-	 * @param context the bind context
-	 * @return the actual item that should be used for binding (may be {@code null})
-	 */
-	default <T> Bindable<T> onStart(ConfigurationPropertyName name, Bindable<T> target,
-			BindContext context) {
-		return target;
-	}
+    /**
+     * onStart方法在外部属性绑定前被调用
+     *
+     * Called when binding of an element starts but before any result has been determined.
+     *
+     * @param <T>     the bindable source type
+     * @param name    the name of the element being bound
+     * @param target  the item being bound
+     * @param context the bind context
+     * @return the actual item that should be used for binding (may be {@code null})
+     */
+    default <T> Bindable<T> onStart(ConfigurationPropertyName name, Bindable<T> target,
+                                    BindContext context) {
+        return target;
+    }
 
-	/**
-	 * Called when binding of an element ends with a successful result. Implementations
-	 * may change the ultimately returned result or perform addition validation.
-	 * @param name the name of the element being bound
-	 * @param target the item being bound
-	 * @param context the bind context
-	 * @param result the bound result (never {@code null})
-	 * @return the actual result that should be used (may be {@code null})
-	 */
-	default Object onSuccess(ConfigurationPropertyName name, Bindable<?> target,
-			BindContext context, Object result) {
-		return result;
-	}
+    /**
+     * Called when binding of an element ends with a successful result. Implementations
+     * may change the ultimately returned result or perform addition validation.
+     *
+     * @param name    the name of the element being bound
+     * @param target  the item being bound
+     * @param context the bind context
+     * @param result  the bound result (never {@code null})
+     * @return the actual result that should be used (may be {@code null})
+     */
+    default Object onSuccess(ConfigurationPropertyName name, Bindable<?> target,
+                             BindContext context, Object result) {
+        return result;
+    }
 
-	/**
-	 * Called when binding fails for any reason (including failures from
-	 * {@link #onSuccess} calls). Implementations may choose to swallow exceptions and
-	 * return an alternative result.
-	 * @param name the name of the element being bound
-	 * @param target the item being bound
-	 * @param context the bind context
-	 * @param error the cause of the error (if the exception stands it may be re-thrown)
-	 * @return the actual result that should be used (may be {@code null}).
-	 * @throws Exception if the binding isn't valid
-	 */
-	default Object onFailure(ConfigurationPropertyName name, Bindable<?> target,
-			BindContext context, Exception error) throws Exception {
-		throw error;
-	}
+    /**
+     * Called when binding fails for any reason (including failures from
+     * {@link #onSuccess} calls). Implementations may choose to swallow exceptions and
+     * return an alternative result.
+     *
+     * @param name    the name of the element being bound
+     * @param target  the item being bound
+     * @param context the bind context
+     * @param error   the cause of the error (if the exception stands it may be re-thrown)
+     * @return the actual result that should be used (may be {@code null}).
+     * @throws Exception if the binding isn't valid
+     */
+    default Object onFailure(ConfigurationPropertyName name, Bindable<?> target,
+                             BindContext context, Exception error) throws Exception {
+        throw error;
+    }
 
-	/**
-	 * Called when binding finishes, regardless of whether the property was bound or not.
-	 * @param name the name of the element being bound
-	 * @param target the item being bound
-	 * @param context the bind context
-	 * @param result the bound result (may be {@code null})
-	 * @throws Exception if the binding isn't valid
-	 */
-	default void onFinish(ConfigurationPropertyName name, Bindable<?> target,
-			BindContext context, Object result) throws Exception {
-	}
+    /**
+     * Called when binding finishes, regardless of whether the property was bound or not.
+     *
+     * @param name    the name of the element being bound
+     * @param target  the item being bound
+     * @param context the bind context
+     * @param result  the bound result (may be {@code null})
+     * @throws Exception if the binding isn't valid
+     */
+    default void onFinish(ConfigurationPropertyName name, Bindable<?> target,
+                          BindContext context, Object result) throws Exception {
+    }
 
 }

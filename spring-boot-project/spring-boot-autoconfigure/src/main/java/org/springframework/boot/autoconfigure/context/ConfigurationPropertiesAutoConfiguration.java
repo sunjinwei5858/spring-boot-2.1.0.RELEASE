@@ -22,14 +22,18 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * 注意：SpringBoot源码中还存在了ConfigurationPropertiesAutoConfiguration这个自动配置类，
+ * 同时spring.factories配置文件中的EnableAutoConfiguration接口也配置了ConfigurationPropertiesAutoConfiguration，
+ * 这个自动配置类上也有@EnableConfigurationProperties这个注解，对属性绑定进行了默认开启。
+ * <p>
  * {@link EnableAutoConfiguration Auto-configuration} for {@link ConfigurationProperties}
  * beans. Automatically binds and validates any bean annotated with
  * {@code @ConfigurationProperties}.
  *
  * @author Stephane Nicoll
- * @since 1.3.0
  * @see EnableConfigurationProperties
  * @see ConfigurationProperties
+ * @since 1.3.0
  */
 @Configuration
 @EnableConfigurationProperties

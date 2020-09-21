@@ -32,27 +32,29 @@ import org.springframework.core.convert.ConverterNotFoundException;
  */
 public class IgnoreTopLevelConverterNotFoundBindHandler extends AbstractBindHandler {
 
-	/**
-	 * Create a new {@link IgnoreTopLevelConverterNotFoundBindHandler} instance.
-	 */
-	public IgnoreTopLevelConverterNotFoundBindHandler() {
-	}
+    /**
+     * Create a new {@link IgnoreTopLevelConverterNotFoundBindHandler} instance.
+     */
+    public IgnoreTopLevelConverterNotFoundBindHandler() {
+    }
 
-	/**
-	 * Create a new {@link IgnoreTopLevelConverterNotFoundBindHandler} instance with a
-	 * specific parent.
-	 * @param parent the parent handler
-	 */
-	public IgnoreTopLevelConverterNotFoundBindHandler(BindHandler parent) {
-	}
+    /**
+     * 责任链模式
+     * Create a new {@link IgnoreTopLevelConverterNotFoundBindHandler} instance with a
+     * specific parent.
+     *
+     * @param parent the parent handler
+     */
+    public IgnoreTopLevelConverterNotFoundBindHandler(BindHandler parent) {
+    }
 
-	@Override
-	public Object onFailure(ConfigurationPropertyName name, Bindable<?> target,
-			BindContext context, Exception error) throws Exception {
-		if (context.getDepth() == 0 && error instanceof ConverterNotFoundException) {
-			return null;
-		}
-		throw error;
-	}
+    @Override
+    public Object onFailure(ConfigurationPropertyName name, Bindable<?> target,
+                            BindContext context, Exception error) throws Exception {
+        if (context.getDepth() == 0 && error instanceof ConverterNotFoundException) {
+            return null;
+        }
+        throw error;
+    }
 
 }

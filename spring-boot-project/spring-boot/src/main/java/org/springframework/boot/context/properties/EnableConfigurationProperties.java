@@ -16,16 +16,14 @@
 
 package org.springframework.boot.context.properties;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
+import java.lang.annotation.*;
+
 /**
+ * 该注解的主要作用就是为@ConfigurationProperties注解标注的类提供支持
+ * <p>
  * Enable support for {@link ConfigurationProperties} annotated beans.
  * {@link ConfigurationProperties} beans can be registered in the standard way (for
  * example using {@link Bean @Bean} methods) or, for convenience, can be specified
@@ -36,14 +34,16 @@ import org.springframework.context.annotation.Import;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Import(EnableConfigurationPropertiesImportSelector.class)
+@Import(EnableConfigurationPropertiesImportSelector.class) // 这个注解是如何对属性进行绑定的呢 关键就是EnableConfigurationPropertiesImportSelector
 public @interface EnableConfigurationProperties {
 
-	/**
-	 * Convenient way to quickly register {@link ConfigurationProperties} annotated beans
-	 * with Spring. Standard Spring Beans will also be scanned regardless of this value.
-	 * @return {@link ConfigurationProperties} annotated beans to register
-	 */
-	Class<?>[] value() default {};
+    /**
+     * 这个值制定的类就是 @ConfigurationProperties 标注的类，其将会被注册到spring容器当中
+     * Convenient way to quickly register {@link ConfigurationProperties} annotated beans
+     * with Spring. Standard Spring Beans will also be scanned regardless of this value.
+     *
+     * @return {@link ConfigurationProperties} annotated beans to register
+     */
+    Class<?>[] value() default {};
 
 }
