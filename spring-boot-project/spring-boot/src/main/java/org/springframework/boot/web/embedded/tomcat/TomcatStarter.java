@@ -26,8 +26,7 @@ import javax.servlet.ServletException;
 import java.util.Set;
 
 /**
- * TomcatStarter实现了ServletContainerInitializer，
- * 重写的onstartup方法，这里会启动ServletContextInitializer的onStartup方法.
+ * TomcatStarter实现了ServletContainerInitializer，当tomcat启动的时候，会启动ServletContextInitializer的onStartup方法.
  * <p>
  * 内嵌的tomcat不会以spi方式加载ServletContainerInitializer，
  * 而是用TomcatStarter的onStartup，间接启动ServletContextInitializers，来达到ServletContainerInitializer的效果。
