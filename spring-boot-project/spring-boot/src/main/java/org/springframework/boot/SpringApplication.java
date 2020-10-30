@@ -16,23 +16,8 @@
 
 package org.springframework.boot;
 
-import java.lang.reflect.Constructor;
-import java.security.AccessControlException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.CachedIntrospectionResults;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -61,26 +46,16 @@ import org.springframework.core.GenericTypeResolver;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.ConfigurableConversionService;
-import org.springframework.core.env.CommandLinePropertySource;
-import org.springframework.core.env.CompositePropertySource;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.MutablePropertySources;
-import org.springframework.core.env.PropertySource;
-import org.springframework.core.env.SimpleCommandLinePropertySource;
-import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.*;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.SpringFactoriesLoader;
-import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.ObjectUtils;
-import org.springframework.util.ReflectionUtils;
-import org.springframework.util.StopWatch;
-import org.springframework.util.StringUtils;
+import org.springframework.util.*;
 import org.springframework.web.context.support.StandardServletEnvironment;
+
+import java.lang.reflect.Constructor;
+import java.security.AccessControlException;
+import java.util.*;
 
 /**
  * Class that can be used to bootstrap and launch a Spring application from a Java main
@@ -223,8 +198,14 @@ public class SpringApplication {
 
     private boolean registerShutdownHook = true;
 
+    /**
+     * 初始化一些容器
+     */
     private List<ApplicationContextInitializer<?>> initializers;
 
+    /**
+     * 监听器
+     */
     private List<ApplicationListener<?>> listeners;
 
     private Map<String, Object> defaultProperties;
@@ -266,10 +247,23 @@ public class SpringApplication {
         this.resourceLoader = resourceLoader;
         Assert.notNull(primarySources, "PrimarySources must not be null");
         this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+        /**
+         * 设置web环境的type 一般为servlet
+         */
         this.webApplicationType = WebApplicationType.deduceFromClasspath();
-        setInitializers((Collection) getSpringFactoriesInstances(
-                ApplicationContextInitializer.class));
-        setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+
+        /**
+         * spi机制加载spring.factories中的ApplicationContextInitializer
+         */
+        Collection<ApplicationContextInitializer> applicationContextInitializers = getSpringFactoriesInstances(ApplicationContextInitializer.class);
+        setInitializers((Collection) applicationContextInitializers);
+
+        /**
+         * spi机制加载spring.factories中的ApplicationListener
+         */
+        Collection<ApplicationListener> applicationListeners = getSpringFactoriesInstances(ApplicationListener.class);
+        setListeners((Collection) applicationListeners);
+
         this.mainApplicationClass = deduceMainApplicationClass();
     }
 
@@ -303,27 +297,40 @@ public class SpringApplication {
         SpringApplicationRunListeners listeners = getRunListeners(args);
         listeners.starting();
         try {
-            ApplicationArguments applicationArguments = new DefaultApplicationArguments(
-                    args);
-            ConfigurableEnvironment environment = prepareEnvironment(listeners,
-                    applicationArguments);
+
+            ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+
+            ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
+
             configureIgnoreBeanInfo(environment);
+
             Banner printedBanner = printBanner(environment);
+            // 创建spring容器对象 AnnotationConfigServletWebServerApplicationContext springboot自己提供的
             context = createApplicationContext();
-            exceptionReporters = getSpringFactoriesInstances(
-                    SpringBootExceptionReporter.class,
-                    new Class[]{ConfigurableApplicationContext.class}, context);
-            prepareContext(context, environment, listeners, applicationArguments,
-                    printedBanner);
+
+            exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class, new Class[]{ConfigurableApplicationContext.class}, context);
+            // 做一些初始化容器之前的预备工作
+            prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+            /**
+             * spring的refresh方法和启动tomcat
+             */
             refreshContext(context);
+            // 做一些容器启动之后的工作 目前是空方法
             afterRefresh(context, applicationArguments);
+
             stopWatch.stop();
+
             if (this.logStartupInfo) {
-                new StartupInfoLogger(this.mainApplicationClass)
-                        .logStarted(getApplicationLog(), stopWatch);
+                new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
             }
             listeners.started(context);
+
+            /**
+             * 这里进行调用实现了ApplicationRunner和CommandLineRunner接口的方法
+             * spring容器已经初始化完成，这里可以作为扩展，可以执行spring容器初始化之后执行一次的任务
+             */
             callRunners(context, applicationArguments);
+
         } catch (Throwable ex) {
             handleRunFailure(context, ex, exceptionReporters, listeners);
             throw new IllegalStateException(ex);
@@ -365,6 +372,16 @@ public class SpringApplication {
         }
     }
 
+    /**
+     * 预备工作：
+     * 1。设置环境
+     * 2。激活yaml的配置文件
+     * @param context
+     * @param environment
+     * @param listeners
+     * @param applicationArguments
+     * @param printedBanner
+     */
     private void prepareContext(ConfigurableApplicationContext context,
                                 ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
                                 ApplicationArguments applicationArguments, Banner printedBanner) {
@@ -372,6 +389,9 @@ public class SpringApplication {
         postProcessApplicationContext(context);
         applyInitializers(context);
         listeners.contextPrepared(context);
+        /**
+         * 这里就是进行打印 No active profile set, falling back to default profiles: default 这句日志的地方
+         */
         if (this.logStartupInfo) {
             logStartupInfo(context.getParent() == null);
             logStartupProfileInfo(context);
@@ -422,11 +442,18 @@ public class SpringApplication {
     private <T> Collection<T> getSpringFactoriesInstances(Class<T> type,
                                                           Class<?>[] parameterTypes, Object... args) {
         ClassLoader classLoader = getClassLoader();
+        /**
+         * 获取名字
+         */
+        List<String> loadFactoryNames = SpringFactoriesLoader.loadFactoryNames(type, classLoader);
         // Use names and ensure unique to protect against duplicates
-        Set<String> names = new LinkedHashSet<>(
-                SpringFactoriesLoader.loadFactoryNames(type, classLoader));
-        List<T> instances = createSpringFactoriesInstances(type, parameterTypes,
-                classLoader, args, names);
+        Set<String> names = new LinkedHashSet<>(loadFactoryNames);
+
+        /**
+         * 创建instance实例
+         */
+        List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
+
         AnnotationAwareOrderComparator.sort(instances);
         return instances;
     }
@@ -795,6 +822,12 @@ public class SpringApplication {
                                 ApplicationArguments args) {
     }
 
+    /**
+     * 调用实现了CommandLineRunner和ApplicationRunner接口的run方法
+     *
+     * @param context
+     * @param args
+     */
     private void callRunners(ApplicationContext context, ApplicationArguments args) {
         List<Object> runners = new ArrayList<>();
         runners.addAll(context.getBeansOfType(ApplicationRunner.class).values());
@@ -1295,7 +1328,20 @@ public class SpringApplication {
      */
     public static ConfigurableApplicationContext run(Class<?>[] primarySources,
                                                      String[] args) {
-        return new SpringApplication(primarySources).run(args);
+
+        /**
+         * 初始化SpringApplication做了很多事情：
+         * 1。指定servlet环境
+         * 2。spi机制读取META-INF/spring.factories: ApplicationContextInitializer和ApplicationListener
+         *
+         */
+        SpringApplication springApplication = new SpringApplication(primarySources);
+
+        /**
+         * run方法做了spring的工作：
+         * refresh方法：在onrefresh方法中进行启动tomcat容器
+         */
+        return springApplication.run(args);
     }
 
     /**
