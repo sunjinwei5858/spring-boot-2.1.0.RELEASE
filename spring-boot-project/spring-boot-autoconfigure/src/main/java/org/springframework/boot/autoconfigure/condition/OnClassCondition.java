@@ -216,6 +216,7 @@ class OnClassCondition extends FilteringSpringBootCondition {
         public ConditionOutcome[] resolveOutcomes() {
             try {
                 // jdk规定，join(0)的意思不是A线程等待B线程0秒，而是A线程等待B线程无限时间，直到B线程执行完毕，即join(0)等价于join()。
+                // 这里应该也可以用CountDownLatch来让主线程等待子线程结束
                 this.thread.join();
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
