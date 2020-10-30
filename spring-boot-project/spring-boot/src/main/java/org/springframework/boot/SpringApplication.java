@@ -376,6 +376,7 @@ public class SpringApplication {
      * 预备工作：
      * 1。设置环境
      * 2。激活yaml的配置文件
+     *
      * @param context
      * @param environment
      * @param listeners
@@ -409,6 +410,10 @@ public class SpringApplication {
         // Load the sources
         Set<Object> sources = getAllSources();
         Assert.notEmpty(sources, "Sources must not be empty");
+        /**
+         * 这里的load方法又会重新走new一个AnnotatedBeanDefinitionReader，
+         * 又会重新调用AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry)方法
+         */
         load(context, sources.toArray(new Object[0]));
         listeners.contextLoaded(context);
     }
@@ -735,8 +740,13 @@ public class SpringApplication {
             logger.debug(
                     "Loading source " + StringUtils.arrayToCommaDelimitedString(sources));
         }
-        BeanDefinitionLoader loader = createBeanDefinitionLoader(
-                getBeanDefinitionRegistry(context), sources);
+        /**
+         * springboot提供的BeanDefinitionLoader在进行构造化的时候会去new一个spring的AnnotatedBeanDefinitionReader
+         * new AnnotatedBeanDefinitionReader()构造化会进行AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry)方法
+         *
+         * 这里会重新走一遍registerAnnotationConfigProcessors方法的逻辑
+         */
+        BeanDefinitionLoader loader = createBeanDefinitionLoader(getBeanDefinitionRegistry(context), sources);
         if (this.beanNameGenerator != null) {
             loader.setBeanNameGenerator(this.beanNameGenerator);
         }
@@ -784,8 +794,7 @@ public class SpringApplication {
             return (BeanDefinitionRegistry) context;
         }
         if (context instanceof AbstractApplicationContext) {
-            return (BeanDefinitionRegistry) ((AbstractApplicationContext) context)
-                    .getBeanFactory();
+            return (BeanDefinitionRegistry) ((AbstractApplicationContext) context).getBeanFactory();
         }
         throw new IllegalStateException("Could not locate BeanDefinitionRegistry");
     }
@@ -797,8 +806,7 @@ public class SpringApplication {
      * @param sources  the sources to load
      * @return the {@link BeanDefinitionLoader} that will be used to load beans
      */
-    protected BeanDefinitionLoader createBeanDefinitionLoader(
-            BeanDefinitionRegistry registry, Object[] sources) {
+    protected BeanDefinitionLoader createBeanDefinitionLoader(BeanDefinitionRegistry registry, Object[] sources) {
         return new BeanDefinitionLoader(registry, sources);
     }
 
