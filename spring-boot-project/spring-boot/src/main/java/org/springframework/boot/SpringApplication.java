@@ -444,18 +444,33 @@ public class SpringApplication {
         return getSpringFactoriesInstances(type, new Class<?>[]{});
     }
 
-    private <T> Collection<T> getSpringFactoriesInstances(Class<T> type,
-                                                          Class<?>[] parameterTypes, Object... args) {
+    /**
+     * springboot的spi机制读取spring.factories!!!!!第一次全部加载出来放入map容器，key:spi接口全限定名 value:spi接口实现类全限定名。
+     * 这样第二次只要根据spi接口，就直接从缓存中获取spi接口实现类了
+     *
+     * @param type
+     * @param parameterTypes
+     * @param args
+     * @param <T>
+     * @return
+     */
+    private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes, Object... args) {
+        /**
+         * 获取类加载器 springboot和java一样默认使用的类加载器都是从线程上下文类加载器 来加载扩展实现类
+         */
         ClassLoader classLoader = getClassLoader();
         /**
-         * 获取名字
+         * spi机制大法：
+         * 根据类加载器和spi接口去获取class名字，如果是第一次 那么会加载spring.factories全部的key-value，然后放入缓存中第二次就全部从缓存中取了。
+         * 之后根据SPI接口就直接从缓存中获取SPI扩展类了，就不用再次去spring.factories配置文件中获取SPI接口对应的扩展实现类了。
+         * 比如之后的获取ApplicationListener,FailureAnalyzer和EnableAutoConfiguration接口的扩展实现类都直接从缓存中获取即可。
          */
         List<String> loadFactoryNames = SpringFactoriesLoader.loadFactoryNames(type, classLoader);
         // Use names and ensure unique to protect against duplicates
         Set<String> names = new LinkedHashSet<>(loadFactoryNames);
 
         /**
-         * 创建instance实例
+         * 反射创建instance实例
          */
         List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
 
@@ -463,6 +478,17 @@ public class SpringApplication {
         return instances;
     }
 
+    /**
+     * 反射创建实例
+     *
+     * @param type
+     * @param parameterTypes
+     * @param classLoader
+     * @param args
+     * @param names
+     * @param <T>
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private <T> List<T> createSpringFactoriesInstances(Class<T> type,
                                                        Class<?>[] parameterTypes, ClassLoader classLoader, Object[] args,
@@ -472,8 +498,7 @@ public class SpringApplication {
             try {
                 Class<?> instanceClass = ClassUtils.forName(name, classLoader);
                 Assert.isAssignable(type, instanceClass);
-                Constructor<?> constructor = instanceClass
-                        .getDeclaredConstructor(parameterTypes);
+                Constructor<?> constructor = instanceClass.getDeclaredConstructor(parameterTypes);
                 T instance = (T) BeanUtils.instantiateClass(constructor, args);
                 instances.add(instance);
             } catch (Throwable ex) {
@@ -770,6 +795,9 @@ public class SpringApplication {
     }
 
     /**
+     * 从线程上下文获取classLoader!!!!
+     * <p>
+     * <p>
      * Either the ClassLoader that will be used in the ApplicationContext (if
      * {@link #setResourceLoader(ResourceLoader) resourceLoader} is set, or the context
      * class loader (if not null), or the loader of the Spring {@link ClassUtils} class.
@@ -780,6 +808,7 @@ public class SpringApplication {
         if (this.resourceLoader != null) {
             return this.resourceLoader.getClassLoader();
         }
+        // 获取默认的类加载器
         return ClassUtils.getDefaultClassLoader();
     }
 
