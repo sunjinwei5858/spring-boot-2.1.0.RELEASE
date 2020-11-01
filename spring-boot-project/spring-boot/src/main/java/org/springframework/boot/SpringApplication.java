@@ -808,7 +808,9 @@ public class SpringApplication {
         if (this.resourceLoader != null) {
             return this.resourceLoader.getClassLoader();
         }
-        // 获取默认的类加载器
+        /**
+         * 获取默认的类加载器
+         */
         return ClassUtils.getDefaultClassLoader();
     }
 
