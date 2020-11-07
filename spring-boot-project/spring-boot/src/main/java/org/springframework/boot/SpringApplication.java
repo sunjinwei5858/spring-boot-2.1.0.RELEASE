@@ -253,12 +253,14 @@ public class SpringApplication {
         this.webApplicationType = WebApplicationType.deduceFromClasspath();
 
         /**
+         * 第一次spi加载：一次性全部加载出来
          * spi机制加载spring.factories中的ApplicationContextInitializer
          */
         Collection<ApplicationContextInitializer> applicationContextInitializers = getSpringFactoriesInstances(ApplicationContextInitializer.class);
         setInitializers((Collection) applicationContextInitializers);
 
         /**
+         * 第二次spi加载：从缓存中读取
          * spi机制加载spring.factories中的ApplicationListener
          */
         Collection<ApplicationListener> applicationListeners = getSpringFactoriesInstances(ApplicationListener.class);
@@ -294,12 +296,19 @@ public class SpringApplication {
         ConfigurableApplicationContext context = null;
         Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
         configureHeadlessProperty();
+        /**
+         * 第三次次进行spi机制加载spring.factories读取SpringApplicationRunListeners，此时可以从缓存中读取
+         */
         SpringApplicationRunListeners listeners = getRunListeners(args);
         listeners.starting();
         try {
 
             ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
 
+            /**
+             * 准备环境，springboot是单独写了一个prepareEnvironment方法进行准备环境，设置yaml配置文件
+             * 而不是在spring的refresh方法中的prepareRefresh代码中进行扩展，可能是refresh的时机太晚了
+             */
             ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 
             configureIgnoreBeanInfo(environment);
@@ -345,11 +354,19 @@ public class SpringApplication {
         return context;
     }
 
+    /**
+     * 准备环境
+     *
+     * @param listeners
+     * @param applicationArguments
+     * @return
+     */
     private ConfigurableEnvironment prepareEnvironment(
             SpringApplicationRunListeners listeners,
             ApplicationArguments applicationArguments) {
-        // Create and configure the environment
+        // Create and configure the environment 1 创建环境
         ConfigurableEnvironment environment = getOrCreateEnvironment();
+        // 2设置 配置文件
         configureEnvironment(environment, applicationArguments.getSourceArgs());
         listeners.environmentPrepared(environment);
         bindToSpringApplication(environment);
@@ -434,10 +451,17 @@ public class SpringApplication {
                 SYSTEM_PROPERTY_JAVA_AWT_HEADLESS, Boolean.toString(this.headless)));
     }
 
+    /**
+     * 调用SpringFactoryLoader通过spi机制加载spring.factories文件
+     *
+     * @param args
+     * @return
+     */
     private SpringApplicationRunListeners getRunListeners(String[] args) {
         Class<?>[] types = new Class<?>[]{SpringApplication.class, String[].class};
-        return new SpringApplicationRunListeners(logger, getSpringFactoriesInstances(
-                SpringApplicationRunListener.class, types, this, args));
+        Collection<SpringApplicationRunListener> springApplicationRunListeners = getSpringFactoriesInstances(
+                SpringApplicationRunListener.class, types, this, args);
+        return new SpringApplicationRunListeners(logger, springApplicationRunListeners);
     }
 
     private <T> Collection<T> getSpringFactoriesInstances(Class<T> type) {
@@ -524,6 +548,8 @@ public class SpringApplication {
     }
 
     /**
+     * environment环境进行设置启动的active profile和property sources
+     * <p>
      * Template method delegating to
      * {@link #configurePropertySources(ConfigurableEnvironment, String[])} and
      * {@link #configureProfiles(ConfigurableEnvironment, String[])} in that order.
@@ -588,8 +614,10 @@ public class SpringApplication {
      * @see org.springframework.boot.context.config.ConfigFileApplicationListener
      */
     protected void configureProfiles(ConfigurableEnvironment environment, String[] args) {
+        // 在这里进行获取active profiles 终于找到源码了!!!
         environment.getActiveProfiles(); // ensure they are initialized
         // But these ones should go first (last wins in a property key clash)
+        // 进行去重
         Set<String> profiles = new LinkedHashSet<>(this.additionalProfiles);
         profiles.addAll(Arrays.asList(environment.getActiveProfiles()));
         environment.setActiveProfiles(StringUtils.toStringArray(profiles));
@@ -1372,7 +1400,9 @@ public class SpringApplication {
          * 初始化SpringApplication做了很多事情：
          * 1。指定servlet环境
          * 2。spi机制读取META-INF/spring.factories: ApplicationContextInitializer和ApplicationListener
-         *
+         *  这是第一次spi加载，会将spring.factories所有的信息加载，放入map容器
+         *  ApplicationContextInitializer：第一次spi加载
+         *  ApplicationListener：第二次spi加载，可以从缓存读取
          */
         SpringApplication springApplication = new SpringApplication(primarySources);
 
