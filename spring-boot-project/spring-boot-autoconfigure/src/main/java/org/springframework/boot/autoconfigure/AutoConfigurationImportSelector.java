@@ -44,6 +44,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
+ * 完成自动配置的类，关键逻辑在getAutoConfigurationEntry方法，
+ * 调用链路：
+ * spring的refresh方法中的invokeBeanFactoryPostProcessors方法-->
+ * ConfigurationClassPostProcessor后置处理器【实现了BeanDefinitionRegistryPostProcessor】执行postProcessBeanDefinitionRegistry方法-->
+ * 调用processConfigBeanDefinitions【注册bean定义】-->是从ConfigurationClassParser.parse方法-->doProcessConfigurationClass方法
+ * <p>
+ * <p>
  * {@link DeferredImportSelector} to handle {@link EnableAutoConfiguration
  * auto-configuration}. This class can also be subclassed if a custom variant of
  * {@link EnableAutoConfiguration @EnableAutoConfiguration} is needed.
@@ -55,8 +62,7 @@ import java.util.stream.Collectors;
  * @see EnableAutoConfiguration
  * @since 1.3.0
  */
-public class AutoConfigurationImportSelector
-        implements DeferredImportSelector, BeanClassLoaderAware, ResourceLoaderAware,
+public class AutoConfigurationImportSelector implements DeferredImportSelector, BeanClassLoaderAware, ResourceLoaderAware,
         BeanFactoryAware, EnvironmentAware, Ordered {
 
     private static final AutoConfigurationEntry EMPTY_ENTRY = new AutoConfigurationEntry();
@@ -89,11 +95,17 @@ public class AutoConfigurationImportSelector
      */
     @Override
     public String[] selectImports(AnnotationMetadata annotationMetadata) {
+        /**
+         * EnableAutoConfiguration注解的ENABLED_OVERRIDE_PROPERTY属性默认为true
+         */
         if (!isEnabled(annotationMetadata)) {
             return NO_IMPORTS;
         }
         AutoConfigurationMetadata autoConfigurationMetadata = AutoConfigurationMetadataLoader.loadMetadata(this.beanClassLoader);
 
+        /**
+         * spi机制：读取spring.factories文件的以EnableAutoConfiguration全限定名为key
+         */
         AutoConfigurationEntry autoConfigurationEntry = getAutoConfigurationEntry(autoConfigurationMetadata, annotationMetadata);
 
         return StringUtils.toStringArray(autoConfigurationEntry.getConfigurations());
@@ -133,9 +145,10 @@ public class AutoConfigurationImportSelector
         // 这里进行去除不需要自动配置的类
         configurations.removeAll(exclusions);
         // filter方法 判断每一个自动配置类上的条件注解（若有的话）
-        // @ConditionalOnClass,@ConditionalOnBean或@ConditionalOnWebApplication是否满足条件，
+        // 注意这里会调用AutoConfigurationImportFilter的match方法来判断是否符合@ConditionalOnBean,@ConditionalOnClass或@ConditionalOnWebApplication
         // 若满足，则返回true，说明匹配，若不满足，则返回false说明不匹配。
         configurations = filter(configurations, autoConfigurationMetadata);
+        // 进行广播 得到AutoConfigurationImportListener所有实现类，然后生成事件进行广播
         fireAutoConfigurationImportEvents(configurations, exclusions);
         return new AutoConfigurationEntry(configurations, exclusions);
     }
@@ -145,6 +158,12 @@ public class AutoConfigurationImportSelector
         return AutoConfigurationGroup.class;
     }
 
+    /**
+     * 默认返回true
+     *
+     * @param metadata
+     * @return
+     */
     protected boolean isEnabled(AnnotationMetadata metadata) {
         if (getClass() == AutoConfigurationImportSelector.class) {
             return getEnvironment().getProperty(
@@ -273,6 +292,8 @@ public class AutoConfigurationImportSelector
     }
 
     /**
+     * 是否符合@ConditionalOnBean,@ConditionalOnClass或@ConditionalOnWebApplication
+     *
      * @param configurations            从spring.factories中获取的自动配置类
      * @param autoConfigurationMetadata
      * @return
@@ -285,8 +306,12 @@ public class AutoConfigurationImportSelector
         // 定义skip数组，是否需要跳过。注意skip数组与candidates数组顺序一一对应
         boolean[] skip = new boolean[candidates.length];
         boolean skipped = false;
-        for (AutoConfigurationImportFilter filter : getAutoConfigurationImportFilters()) {
+        List<AutoConfigurationImportFilter> autoConfigurationImportFilters = getAutoConfigurationImportFilters();
+        for (AutoConfigurationImportFilter filter : autoConfigurationImportFilters) {
             invokeAwareMethods(filter);
+            /**
+             * AutoConfigurationImportFilter接口-->抽象类FilteringSpringBootCondition-->子类重写抽象模板方法getOutcomes
+             */
             boolean[] match = filter.match(candidates, autoConfigurationMetadata);
             for (int i = 0; i < match.length; i++) {
                 if (!match[i]) {
