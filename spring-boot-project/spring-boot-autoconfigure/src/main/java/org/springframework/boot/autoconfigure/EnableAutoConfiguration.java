@@ -29,6 +29,23 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
 import java.lang.annotation.*;
 
 /**
+ * 类比1：@EnableScheduling是通过@Import将Spring调度框架相关的bean定义都加载到IoC容器。
+ * 类比2：@EnableMBeanExport是通过@Import将JMX相关的bean定义加载到IoC容器。
+ * 而@EnableAutoConfiguration也是借助@Import的帮助，将所有符合自动配置条件的bean定义加载到IoC容器，仅此而已！
+ *
+ * 最关键的要属@Import(EnableAutoConfigurationImportSelector.class)，
+ * 借助EnableAutoConfigurationImportSelector，@EnableAutoConfiguration可以帮助SpringBoot应用将
+ * 所有符合条件的@Configuration配置都加载到当前SpringBoot创建并使用的IoC容器
+ *
+ * 借助于Spring框架原有的一个工具类：SpringFactoriesLoader的支持，@EnableAutoConfiguration可以智能的自动配置功效才得以大功告成！
+ *
+ * SpringFactoriesLoader属于Spring框架私有的一种扩展方案，其主要功能就是从指定的配置文件META-INF/spring.factories加载配置。
+ *
+ * @EnableAutoConfiguration自动配置的魔法骑士就变成了：
+ * 从classpath中搜寻所有的META-INF/spring.factories配置文件，
+ * 并将其中org.springframework.boot.autoconfigure.EnableAutoConfiguration对应的配置项
+ * 通过反射（Java Reflection）实例化为对应的标注了@Configuration的JavaConfig形式的IoC容器配置类，然后汇总为一个并加载到IoC容器。
+ *
  * Enable auto-configuration of the Spring Application Context, attempting to guess and
  * configure beans that you are likely to need. Auto-configuration classes are usually
  * applied based on your classpath and what beans you have defined. For example, if you
