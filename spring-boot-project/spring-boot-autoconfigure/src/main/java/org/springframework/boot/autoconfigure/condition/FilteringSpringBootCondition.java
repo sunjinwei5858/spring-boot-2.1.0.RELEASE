@@ -31,6 +31,10 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * FilteringSpringBootCondition是AutoConfigurationImportFilter接口的抽象类，
+ * 有三个子类具体实现 OnConditionBean,OnClassCondition,OnWebApplicationCondition，
+ * getOutcomes()是抽象模板方法，子类自己去实现!!!  模板方法设计模式
+ * <p>
  * Abstract base class for a {@link SpringBootCondition} that also implements
  * {@link AutoConfigurationImportFilter}.
  *
@@ -48,6 +52,9 @@ abstract class FilteringSpringBootCondition extends SpringBootCondition
 
         ConditionEvaluationReport report = ConditionEvaluationReport.find(this.beanFactory);
 
+        /**
+         * getOutcomes属于抽象模板方法，子类OnClassCondition,OnBeanCondition和OnWebApplicationCondition将会复写这个模板方法实现自己的匹配判断逻辑。
+         */
         ConditionOutcome[] outcomes = getOutcomes(autoConfigurationClasses, autoConfigurationMetadata);
 
         boolean[] match = new boolean[outcomes.length];

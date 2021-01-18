@@ -135,7 +135,9 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
     }
 
     /**
-     * 应用上下文刷新
+     * 应用上下文刷新，springboot提供的ServletWebServerApplicationContext重写了onFresh方法，
+     * 准确来说 应该扩展，因为父类AbstractApplicationContext的onRefresh就是为了留给子类扩展的，
+     * 创建WebServer对象
      */
     @Override
     protected void onRefresh() {
@@ -150,9 +152,17 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
         }
     }
 
+    /**
+     * start()何时调用？
+     * spring容器的refresh方法中的最后一步finishRefresh方法，该类重写了finishRefresh方法
+     * 启动Web服务：真正完成springboot启动的方法，依然是由TomcatWebServer这个类完成的
+     */
     @Override
     protected void finishRefresh() {
         super.finishRefresh();
+        /**
+         * 启动web服务
+         */
         WebServer webServer = startWebServer();
         if (webServer != null) {
             publishEvent(new ServletWebServerInitializedEvent(webServer, this));
@@ -320,6 +330,11 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
         }
     }
 
+    /**
+     * 仍然是TomcatWebServer调用start进行启动的
+     *
+     * @return
+     */
     private WebServer startWebServer() {
         WebServer webServer = this.webServer;
         if (webServer != null) {

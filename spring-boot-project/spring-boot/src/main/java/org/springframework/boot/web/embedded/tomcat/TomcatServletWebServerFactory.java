@@ -144,25 +144,33 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
      */
     @Override
     public WebServer getWebServer(ServletContextInitializer... initializers) {
+        /**
+         * 1-5 配置tomcat
+         */
         Tomcat tomcat = new Tomcat();
-        File baseDir = (this.baseDirectory != null) ? this.baseDirectory
-                : createTempDir("tomcat");
+        // 1 创建一个tomcat临时文件路径
+        File baseDir = (this.baseDirectory != null) ? this.baseDirectory : createTempDir("tomcat");
         tomcat.setBaseDir(baseDir.getAbsolutePath());
+        // 2 创建连接协议 默认使用HTTP1.1协议 NIO网络模型
         Connector connector = new Connector(this.protocol);
+        //
         tomcat.getService().addConnector(connector);
         customizeConnector(connector);
         tomcat.setConnector(connector);
+        // 3创建主机 关闭热部署
         tomcat.getHost().setAutoDeploy(false);
+        // 4配置引擎
         configureEngine(tomcat.getEngine());
         for (Connector additionalConnector : this.additionalTomcatConnectors) {
             tomcat.getService().addConnector(additionalConnector);
         }
         /**
-         * !!!!!---> configureContext
+         * 5初始化TomcatEmbeddedContext!!!!!---> configureContext--> new TomcatStarter()
          */
         prepareContext(tomcat.getHost(), initializers);
 
         /**
+         * 6 TomcatWebServer对象是springboot对Tomcat对象的封装，内部存了tomcat实例的引用
          * 启动tomcat 内嵌的tomcat不会以spi方式加载ServletContainerInitializer，
          * 而是用TomcatStarter的onStartup，间接启动ServletContextInitializers，来达到ServletContainerInitializer的效果。
          */
@@ -187,8 +195,8 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
         context.setName(getContextPath());
         context.setDisplayName(getDisplayName());
         context.setPath(getContextPath());
-        File docBase = (documentRoot != null) ? documentRoot
-                : createTempDir("tomcat-docbase");
+        // 配置docBase
+        File docBase = (documentRoot != null) ? documentRoot : createTempDir("tomcat-docbase");
         context.setDocBase(docBase.getAbsolutePath());
         context.addLifecycleListener(new FixContextListener());
         context.setParentClassLoader(
@@ -210,9 +218,7 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
             addJasperInitializer(context);
         }
         context.addLifecycleListener(new StaticResourceConfigurer(context));
-        /**
-         *
-         */
+
         ServletContextInitializer[] initializersToUse = mergeInitializers(initializers);
         host.addChild(context);
         /**
@@ -329,11 +335,10 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
      * @param context      the Tomcat context
      * @param initializers initializers to apply
      */
-    protected void configureContext(Context context,
-                                    ServletContextInitializer[] initializers) {
+    protected void configureContext(Context context, ServletContextInitializer[] initializers) {
 
         /**
-         *
+         * 创建TomcatStarter
          */
         TomcatStarter starter = new TomcatStarter(initializers);
 

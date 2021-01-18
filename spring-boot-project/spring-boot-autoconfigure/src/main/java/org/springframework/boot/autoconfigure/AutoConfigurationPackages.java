@@ -90,8 +90,7 @@ public abstract class AutoConfigurationPackages {
             BeanDefinition beanDefinition = registry.getBeanDefinition(BEAN);
             ConstructorArgumentValues constructorArguments = beanDefinition
                     .getConstructorArgumentValues();
-            constructorArguments.addIndexedArgumentValue(0,
-                    addBasePackages(constructorArguments, packageNames));
+            constructorArguments.addIndexedArgumentValue(0, addBasePackages(constructorArguments, packageNames));
         } else {
             GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
             beanDefinition.setBeanClass(BasePackages.class);
@@ -103,8 +102,7 @@ public abstract class AutoConfigurationPackages {
 
     private static String[] addBasePackages(
             ConstructorArgumentValues constructorArguments, String[] packageNames) {
-        String[] existing = (String[]) constructorArguments
-                .getIndexedArgumentValue(0, String[].class).getValue();
+        String[] existing = (String[]) constructorArguments.getIndexedArgumentValue(0, String[].class).getValue();
         Set<String> merged = new LinkedHashSet<>();
         merged.addAll(Arrays.asList(existing));
         merged.addAll(Arrays.asList(packageNames));

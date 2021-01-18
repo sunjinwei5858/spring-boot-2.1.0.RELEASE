@@ -34,6 +34,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
+ * TomcatWebServer对象是springboot对Tomcat对象的封装，内部存了tomcat实例的引用
+ * <p>
  * {@link WebServer} that can be used to control a Tomcat web server. Usually this class
  * should be created using the {@link TomcatReactiveWebServerFactory} of
  * {@link TomcatServletWebServerFactory}, but not directly.
@@ -184,6 +186,12 @@ public class TomcatWebServer implements WebServer {
         awaitThread.start();
     }
 
+    /**
+     * 什么时候调用start方法的？
+     * spring的refresh方法中的最后一步finishRefresh
+     *
+     * @throws WebServerException
+     */
     @Override
     public void start() throws WebServerException {
         synchronized (this.monitor) {
@@ -194,6 +202,10 @@ public class TomcatWebServer implements WebServer {
                 addPreviouslyRemovedConnectors();
                 Connector connector = this.tomcat.getConnector();
                 if (connector != null && this.autoStart) {
+                    /**
+                     * 看到下面的日志打印：Tomcat started on port(s)
+                     * !!!说明最终启动web容器的函数就是performDeferredLoadOnStartup()
+                     */
                     performDeferredLoadOnStartup();
                 }
                 checkThatConnectorsHaveStarted();

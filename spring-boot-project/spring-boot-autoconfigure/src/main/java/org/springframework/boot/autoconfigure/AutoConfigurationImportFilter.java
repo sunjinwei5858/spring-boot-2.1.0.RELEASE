@@ -22,6 +22,8 @@ import org.springframework.context.EnvironmentAware;
 import org.springframework.context.ResourceLoaderAware;
 
 /**
+ * 过滤不满足条件的自动配置类的接口
+ *
  * Filter that can be registered in {@code spring.factories} to limit the
  * auto-configuration classes considered. This interface is designed to allow fast removal
  * of auto-configuration classes before their bytecode is even read.

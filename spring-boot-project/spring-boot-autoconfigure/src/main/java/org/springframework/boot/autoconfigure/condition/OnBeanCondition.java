@@ -41,6 +41,8 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 /**
+ * FilteringSpringBootCondition又是SpringBootCondition的子类
+ * <p>
  * {@link Condition} that checks for the presence or absence of specific beans.
  *
  * @author Phillip Webb
@@ -53,7 +55,7 @@ import java.util.*;
  * @see ConditionalOnSingleCandidate
  */
 @Order(Ordered.LOWEST_PRECEDENCE)
-class OnBeanCondition extends FilteringSpringBootCondition // FilteringSpringBootCondition又是SpringBootCondition的子类
+class OnBeanCondition extends FilteringSpringBootCondition
         implements ConfigurationCondition {
 
     /**
@@ -215,7 +217,7 @@ class OnBeanCondition extends FilteringSpringBootCondition // FilteringSpringBoo
         for (String annotation : beans.getAnnotations()) {
             // 使用Arrays.asList 创建集合 不需要进行add了
             List<String> annotationMatches = Arrays.asList(getBeanNamesForAnnotation(beanFactory, annotation,
-                            context.getClassLoader(), considerHierarchy));
+                    context.getClassLoader(), considerHierarchy));
             annotationMatches.removeAll(beansIgnoredByType);
             if (annotationMatches.isEmpty()) {
                 matchResult.recordUnmatchedAnnotation(annotation);

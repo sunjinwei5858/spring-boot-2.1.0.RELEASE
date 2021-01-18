@@ -22,6 +22,9 @@ import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 
 /**
+ * 该工厂用来创建web服务器 比如tomcat
+ *
+ *
  * Factory interface that can be used to create a {@link WebServer}.
  *
  * @author Phillip Webb
@@ -31,16 +34,17 @@ import org.springframework.boot.web.servlet.ServletContextInitializer;
 @FunctionalInterface
 public interface ServletWebServerFactory {
 
-	/**
-	 * Gets a new fully configured but paused {@link WebServer} instance. Clients should
-	 * not be able to connect to the returned server until {@link WebServer#start()} is
-	 * called (which happens when the {@link ApplicationContext} has been fully
-	 * refreshed).
-	 * @param initializers {@link ServletContextInitializer}s that should be applied as
-	 * the server starts
-	 * @return a fully configured and started {@link WebServer}
-	 * @see WebServer#stop()
-	 */
-	WebServer getWebServer(ServletContextInitializer... initializers);
+    /**
+     * Gets a new fully configured but paused {@link WebServer} instance. Clients should
+     * not be able to connect to the returned server until {@link WebServer#start()} is
+     * called (which happens when the {@link ApplicationContext} has been fully
+     * refreshed).
+     *
+     * @param initializers {@link ServletContextInitializer}s that should be applied as
+     *                     the server starts
+     * @return a fully configured and started {@link WebServer}
+     * @see WebServer#stop()
+     */
+    WebServer getWebServer(ServletContextInitializer... initializers);
 
 }
