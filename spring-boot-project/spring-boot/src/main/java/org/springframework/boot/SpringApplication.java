@@ -364,10 +364,15 @@ public class SpringApplication {
     private ConfigurableEnvironment prepareEnvironment(
             SpringApplicationRunListeners listeners,
             ApplicationArguments applicationArguments) {
-        // Create and configure the environment 1 创建环境
+        // Create and configure the environment
+        // 1 创建环境 创建environment对象
         ConfigurableEnvironment environment = getOrCreateEnvironment();
-        // 2设置 配置文件
+        // 2设置 配置文件 配置environment对象
         configureEnvironment(environment, applicationArguments.getSourceArgs());
+        /**
+         * 发布事件给监听器：主要是触发ConfigFileApplicationListener这个监听器，这个监听器会加载application.properties或者yml这样的配置文件
+         * 但是要注意这里的监听器并不是ConfigFileApplicationListener，而是一个负责分发事件的监听器EventPublishingRunListener
+         */
         listeners.environmentPrepared(environment);
         bindToSpringApplication(environment);
         if (!this.isCustomEnvironment) {
