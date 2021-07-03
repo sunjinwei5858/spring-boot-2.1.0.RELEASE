@@ -329,6 +329,9 @@ public class SpringApplication {
 
             stopWatch.stop();
 
+            System.out.println("==========" + stopWatch.getTotalTimeMillis());
+            System.out.println("==========" + stopWatch.getTotalTimeSeconds());
+
             if (this.logStartupInfo) {
                 new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
             }
