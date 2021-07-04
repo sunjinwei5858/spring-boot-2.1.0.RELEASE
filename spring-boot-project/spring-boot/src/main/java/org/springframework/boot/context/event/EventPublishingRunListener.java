@@ -80,8 +80,8 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
          * 这里包装了一个ApplicationEnvironmentPreparedEvent事件，并通过广播的方式广播给监听该事件的监听器，
          * 到这个时候才触发了ConfigFileApplicationListener
          */
-        this.initialMulticaster.multicastEvent(new ApplicationEnvironmentPreparedEvent(
-                this.application, this.args, environment));
+        ApplicationEnvironmentPreparedEvent event = new ApplicationEnvironmentPreparedEvent(this.application, this.args, environment);
+        this.initialMulticaster.multicastEvent(event);
     }
 
     @Override

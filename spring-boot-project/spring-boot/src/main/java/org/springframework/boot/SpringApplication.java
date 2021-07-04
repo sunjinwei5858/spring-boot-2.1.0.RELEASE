@@ -394,7 +394,8 @@ public class SpringApplication {
     }
 
     /**
-     * 准备环境
+     * 准备环境:1创建环境 2设置active的配置文件 3发布事件给监听器，进行加载配置文件
+     * 参考博客 @see https://www.cnblogs.com/lay2017/p/11483943.html
      *
      * @param listeners
      * @param applicationArguments
@@ -402,13 +403,15 @@ public class SpringApplication {
      */
     private ConfigurableEnvironment prepareEnvironment(
             SpringApplicationRunListeners listeners,
-            ApplicationArguments applicationArguments) {
+            ApplicationArguments applicationArguments
+    ) {
         // Create and configure the environment
         // 1 创建环境 创建environment对象
         ConfigurableEnvironment environment = getOrCreateEnvironment();
         // 2设置 配置文件 配置environment对象
         configureEnvironment(environment, applicationArguments.getSourceArgs());
         /**
+         * 3
          * 发布事件给监听器：主要是触发ConfigFileApplicationListener这个监听器，这个监听器会加载application.properties或者yml这样的配置文件
          * 但是要注意这里的监听器并不是ConfigFileApplicationListener，而是一个负责分发事件的监听器EventPublishingRunListener
          */
@@ -447,8 +450,12 @@ public class SpringApplication {
     private void prepareContext(ConfigurableApplicationContext context,
                                 ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
                                 ApplicationArguments applicationArguments, Banner printedBanner) {
+
         context.setEnvironment(environment);
         postProcessApplicationContext(context);
+        /**
+         * ApplicationContextInitializer的理解和使用，阿波罗就是利用了这个ApplicationContextInitializer做的扩展
+         */
         applyInitializers(context);
         listeners.contextPrepared(context);
         /**
@@ -765,6 +772,8 @@ public class SpringApplication {
     }
 
     /**
+     * ApplicationContextInitializer的调用 在refresh之前调用 @see https://www.cnblogs.com/hello-shf/p/10987360.html
+     *
      * Apply any {@link ApplicationContextInitializer}s to the context before it is
      * refreshed.
      *
@@ -773,7 +782,8 @@ public class SpringApplication {
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     protected void applyInitializers(ConfigurableApplicationContext context) {
-        for (ApplicationContextInitializer initializer : getInitializers()) {
+        Set<ApplicationContextInitializer<?>> initializers = getInitializers();
+        for (ApplicationContextInitializer initializer : initializers) {
             Class<?> requiredType = GenericTypeResolver.resolveTypeArgument(
                     initializer.getClass(), ApplicationContextInitializer.class);
             Assert.isInstanceOf(requiredType, context, "Unable to call initializer.");
