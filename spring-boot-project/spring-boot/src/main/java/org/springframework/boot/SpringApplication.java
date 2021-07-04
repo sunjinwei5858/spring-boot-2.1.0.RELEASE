@@ -232,6 +232,12 @@ public class SpringApplication {
     }
 
     /**
+     * 一 SpringApplication的构造函数，过程主要包括：
+     * 1。推断当前应用的类型
+     * 2。设置ApplicationContext的初始化器，Application的监听器
+     * 3。推断并设置主类
+     * <p>
+     * <p>
      * Create a new {@link SpringApplication} instance. The application context will load
      * beans from the specified primary sources (see {@link SpringApplication class-level}
      * documentation for details. The instance can be customized before calling
@@ -247,12 +253,17 @@ public class SpringApplication {
         this.resourceLoader = resourceLoader;
         Assert.notNull(primarySources, "PrimarySources must not be null");
         this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+
         /**
+         * 1
+         * deduceFromClasspath方法将会推断出当前应用属于以上三个枚举实例的哪一个，跟进方法
          * 设置web环境的type 一般为servlet
          */
         this.webApplicationType = WebApplicationType.deduceFromClasspath();
 
         /**
+         * 2.1
+         * 设置ApplicationContext的初始化器
          * 第一次spi加载：一次性全部加载出来
          * spi机制加载spring.factories中的ApplicationContextInitializer
          */
@@ -260,20 +271,34 @@ public class SpringApplication {
         setInitializers((Collection) applicationContextInitializers);
 
         /**
+         * 2.2
+         * 设置Application的监听器
          * 第二次spi加载：从缓存中读取
          * spi机制加载spring.factories中的ApplicationListener
          */
         Collection<ApplicationListener> applicationListeners = getSpringFactoriesInstances(ApplicationListener.class);
         setListeners((Collection) applicationListeners);
 
+        /**
+         * 3根据堆栈来推断当前main方法所在的主类
+         */
         this.mainApplicationClass = deduceMainApplicationClass();
     }
 
+    /**
+     * 根据堆栈来推断当前main方法所在的主类
+     *
+     * @return
+     */
     private Class<?> deduceMainApplicationClass() {
         try {
+            // 1获取堆栈链路
             StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
+            // 2遍历每一个栈桢信息
             for (StackTraceElement stackTraceElement : stackTrace) {
+                // 3如果该栈桢对应的方法名为main
                 if ("main".equals(stackTraceElement.getMethodName())) {
+                    // 4获取该类的class对象
                     return Class.forName(stackTraceElement.getClassName());
                 }
             }
@@ -284,8 +309,11 @@ public class SpringApplication {
     }
 
     /**
-     * Run the Spring application, creating and refreshing a new
-     * {@link ApplicationContext}.
+     * 二 SpringApplication run方法逻辑
+     * run方法描述了SpringApplication这个类的职责，包含了不少步骤，但简单的看其实就是为了创建并配置好一个ApplicationContext。
+     * 我们忽略各种细节以后就会发现，SpringApplication的run方法主要就是为了构建出一个ApplicationContext，
+     * <p>
+     * Run the Spring application, creating and refreshing a new {@link ApplicationContext}.
      *
      * @param args the application arguments (usually passed from a Java main method)
      * @return a running {@link ApplicationContext}
@@ -293,19 +321,24 @@ public class SpringApplication {
     public ConfigurableApplicationContext run(String... args) {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
+
+        // 1 声明一个context容器
         ConfigurableApplicationContext context = null;
         Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
         configureHeadlessProperty();
         /**
+         * 2 获取监听器
          * 第三次次进行spi机制加载spring.factories读取SpringApplicationRunListeners，此时可以从缓存中读取
          */
         SpringApplicationRunListeners listeners = getRunListeners(args);
+        // 3 监听器启动
         listeners.starting();
         try {
 
             ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
 
             /**
+             * 4 创建并配置Environment（这个过程会加载application配置文件）
              * 准备环境，springboot是单独写了一个prepareEnvironment方法进行准备环境，设置yaml配置文件
              * 而不是在spring的refresh方法中的prepareRefresh代码中进行扩展，可能是refresh的时机太晚了
              */
@@ -314,17 +347,17 @@ public class SpringApplication {
             configureIgnoreBeanInfo(environment);
 
             Banner printedBanner = printBanner(environment);
-            // 创建spring容器对象 AnnotationConfigServletWebServerApplicationContext springboot自己提供的
+            // 5 根据应用类型创建spring容器对象 AnnotationConfigServletWebServerApplicationContext springboot自己提供的
             context = createApplicationContext();
 
             exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class, new Class[]{ConfigurableApplicationContext.class}, context);
-            // 做一些初始化容器之前的预备工作
+            // 6 刷新context容器之前 做一些预备工作
             prepareContext(context, environment, listeners, applicationArguments, printedBanner);
             /**
-             * spring的refresh方法和启动tomcat
+             * 7 刷新context容器：spring的refresh方法和启动tomcat
              */
             refreshContext(context);
-            // 做一些容器启动之后的工作 目前是空方法
+            // 8 刷新context容器之后 做一些容器启动之后的工作 目前是空方法
             afterRefresh(context, applicationArguments);
 
             stopWatch.stop();
@@ -335,9 +368,11 @@ public class SpringApplication {
             if (this.logStartupInfo) {
                 new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
             }
+            // 9 context容器刷新完毕 发布
             listeners.started(context);
 
             /**
+             * 10 触发Context容器refresh完以后的执行
              * 这里进行调用实现了ApplicationRunner和CommandLineRunner接口的方法
              * spring容器已经初始化完成，这里可以作为扩展，可以执行spring容器初始化之后执行一次的任务
              */
@@ -349,6 +384,7 @@ public class SpringApplication {
         }
 
         try {
+            // 11 context启动完毕 runner运行完毕 发布
             listeners.running(context);
         } catch (Throwable ex) {
             handleRunFailure(context, ex, exceptionReporters, null);
@@ -1312,8 +1348,7 @@ public class SpringApplication {
     public void setApplicationContextClass(
             Class<? extends ConfigurableApplicationContext> applicationContextClass) {
         this.applicationContextClass = applicationContextClass;
-        this.webApplicationType = WebApplicationType
-                .deduceFromApplicationContext(applicationContextClass);
+        this.webApplicationType = WebApplicationType.deduceFromApplicationContext(applicationContextClass);
     }
 
     /**
