@@ -199,12 +199,12 @@ public class SpringApplication {
     private boolean registerShutdownHook = true;
 
     /**
-     * 初始化一些容器
+     * ApplicationContextInitializer 数组
      */
     private List<ApplicationContextInitializer<?>> initializers;
 
     /**
-     * 监听器
+     * ApplicationListener监听器 数组
      */
     private List<ApplicationListener<?>> listeners;
 
@@ -1461,7 +1461,7 @@ public class SpringApplication {
 
         /**
          * run方法做了spring的工作：
-         * refresh方法：在onrefresh方法中进行启动tomcat容器
+         * refresh方法：在onRefresh方法中进行启动tomcat容器
          */
         return springApplication.run(args);
     }
