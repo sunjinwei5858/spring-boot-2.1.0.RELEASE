@@ -45,6 +45,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
+ * 英文注释这里清晰说明加载器支持xml配置和java配置
  * Loads bean definitions from underlying sources, including XML and JavaConfig. Acts as a
  * simple facade over {@link AnnotatedBeanDefinitionReader},
  * {@link XmlBeanDefinitionReader} and {@link ClassPathBeanDefinitionScanner}. See
@@ -57,6 +58,9 @@ class BeanDefinitionLoader {
 
     private final Object[] sources;
 
+    /**
+     * 该类是spring提供的  专门用来解析配置类的  因为配置类无法被包扫描
+     */
     private final AnnotatedBeanDefinitionReader annotatedReader;
 
     private final XmlBeanDefinitionReader xmlReader;
@@ -79,15 +83,25 @@ class BeanDefinitionLoader {
         Assert.notEmpty(sources, "Sources must not be empty");
         this.sources = sources;
         /**
+         * 1注解方式读取器
          * 构造化一个AnnotatedBeanDefinitionReader，会去执行
          * AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry)方法
          */
         this.annotatedReader = new AnnotatedBeanDefinitionReader(registry);
+        /**
+         * 2xml方式
+         */
         this.xmlReader = new XmlBeanDefinitionReader(registry);
         if (isGroovyPresent()) {
             this.groovyReader = new GroovyBeanDefinitionReader(registry);
         }
+        /**
+         * 类路径下的扫描器
+         */
         this.scanner = new ClassPathBeanDefinitionScanner(registry);
+        /**
+         * 扫描排除当前main方法的主类
+         */
         this.scanner.addExcludeFilter(new ClassExcludeFilter(sources));
     }
 
@@ -155,14 +169,15 @@ class BeanDefinitionLoader {
     }
 
     private int load(Class<?> source) {
-        if (isGroovyPresent()
-                && GroovyBeanDefinitionSource.class.isAssignableFrom(source)) {
+        if (isGroovyPresent() && GroovyBeanDefinitionSource.class.isAssignableFrom(source)) {
             // Any GroovyLoaders added in beans{} DSL can contribute beans here
             GroovyBeanDefinitionSource loader = BeanUtils.instantiateClass(source,
                     GroovyBeanDefinitionSource.class);
             load(loader);
         }
+        // 判断是不是通过了@Component注解修饰
         if (isComponent(source)) {
+            // 读取主类的过程
             this.annotatedReader.register(source);
             return 1;
         }
@@ -283,6 +298,14 @@ class BeanDefinitionLoader {
         return Package.getPackage(source.toString());
     }
 
+    /**
+     * 判断这个类是否有@Component注解，但是请注意我们通常都使用@SpringBootApplication这个注解，并没有直接使用@Component
+     * 而@SpringBootApplication是一个组合注解，其中就组合了@Component
+     * AnnotationUtils.findAnnotation()方法就会递归遍历注解 最终找到@Component
+     *
+     * @param type
+     * @return
+     */
     private boolean isComponent(Class<?> type) {
         // This has to be a bit of a guess. The only way to be sure that this type is
         // eligible is to make a bean definition out of it and try to instantiate it.

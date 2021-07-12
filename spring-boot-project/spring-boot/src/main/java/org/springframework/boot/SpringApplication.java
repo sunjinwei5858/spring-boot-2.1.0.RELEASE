@@ -351,19 +351,19 @@ public class SpringApplication {
             context = createApplicationContext();
 
             exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class, new Class[]{ConfigurableApplicationContext.class}, context);
+
             // 6 刷新context容器之前 做一些预备工作
+            // 主要就是将配置类的bean定义注册到容器
             prepareContext(context, environment, listeners, applicationArguments, printedBanner);
             /**
              * 7 刷新context容器：spring的refresh方法和启动tomcat
              */
             refreshContext(context);
+
             // 8 刷新context容器之后 做一些容器启动之后的工作 目前是空方法
             afterRefresh(context, applicationArguments);
 
             stopWatch.stop();
-
-            System.out.println("==========" + stopWatch.getTotalTimeMillis());
-            System.out.println("==========" + stopWatch.getTotalTimeSeconds());
 
             if (this.logStartupInfo) {
                 new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
@@ -437,9 +437,11 @@ public class SpringApplication {
     }
 
     /**
+     * prepareContext方法主要就是为了加载并注册主类的BeanDefinition到ApplicationContext
      * 预备工作：
-     * 1。设置环境
-     * 2。激活yaml的配置文件
+     * 1.基本的初始化工作：如设置Environment，调用ApplicationContextInitializer接口的实现类，激活yaml的配置文件
+     * 2.注册现有的对象为单例bean，如args、banner
+     * 3.加载main方法所在的主类的bean定义到ApplicationContext 因为该类就是第一个配置类!!!!
      *
      * @param context
      * @param environment
@@ -451,12 +453,16 @@ public class SpringApplication {
                                 ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
                                 ApplicationArguments applicationArguments, Banner printedBanner) {
 
+        // 设置环境
         context.setEnvironment(environment);
+        // 后置处理
         postProcessApplicationContext(context);
         /**
+         * 调用ApplicationContextInitializer接口的实现
          * ApplicationContextInitializer的理解和使用，阿波罗就是利用了这个ApplicationContextInitializer做的扩展
          */
         applyInitializers(context);
+        // 发布ApplicationContext准备事件
         listeners.contextPrepared(context);
         /**
          * 这里就是进行打印 No active profile set, falling back to default profiles: default 这句日志的地方
@@ -467,22 +473,28 @@ public class SpringApplication {
         }
         // Add boot specific singleton beans
         ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
+        // 注册args参数为单例bean
         beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
         if (printedBanner != null) {
+            // 注册banner为单例bean
             beanFactory.registerSingleton("springBootBanner", printedBanner);
         }
         if (beanFactory instanceof DefaultListableBeanFactory) {
+            // 设置beanFactory中是否允许重复bean覆盖
             ((DefaultListableBeanFactory) beanFactory)
                     .setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
         }
         // Load the sources
+        // 加载main方法所在类
         Set<Object> sources = getAllSources();
         Assert.notEmpty(sources, "Sources must not be empty");
         /**
+         * 注册main方法所在类到beanFactory
          * 这里的load方法又会重新走new一个AnnotatedBeanDefinitionReader，
          * 又会重新调用AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry)方法
          */
         load(context, sources.toArray(new Object[0]));
+        // 发布Context加载事件
         listeners.contextLoaded(context);
     }
 
@@ -773,7 +785,7 @@ public class SpringApplication {
 
     /**
      * ApplicationContextInitializer的调用 在refresh之前调用 @see https://www.cnblogs.com/hello-shf/p/10987360.html
-     *
+     * <p>
      * Apply any {@link ApplicationContextInitializer}s to the context before it is
      * refreshed.
      *
@@ -837,7 +849,8 @@ public class SpringApplication {
     }
 
     /**
-     * Load beans into the application context.
+     * 配置 --> BeanDefinition --> Bean 这样一个逻辑
+     * Load beans into the application context.【BeanDefinition将被注册到ApplicationContext里面】
      *
      * @param context the context to load beans into
      * @param sources the sources to load
@@ -853,7 +866,11 @@ public class SpringApplication {
          *
          * 这里会重新走一遍registerAnnotationConfigProcessors方法的逻辑
          */
-        BeanDefinitionLoader loader = createBeanDefinitionLoader(getBeanDefinitionRegistry(context), sources);
+        // 获取BeanDefinition定义注册
+        BeanDefinitionRegistry beanDefinitionRegistry = getBeanDefinitionRegistry(context);
+
+        // 获取BeanDefinition加载器
+        BeanDefinitionLoader loader = createBeanDefinitionLoader(beanDefinitionRegistry, sources);
         if (this.beanNameGenerator != null) {
             loader.setBeanNameGenerator(this.beanNameGenerator);
         }
@@ -863,6 +880,7 @@ public class SpringApplication {
         if (this.environment != null) {
             loader.setEnvironment(this.environment);
         }
+        // 加载资源
         loader.load();
     }
 
@@ -898,6 +916,12 @@ public class SpringApplication {
 
     /**
      * Get the bean definition registry.
+     *
+     * springboot的AnnotationConfigServletWebServerApplicationContext这个ApplicationContext的实现类，
+     * 随着继承链路向上走是继承自GenericApplicationContext的，
+     * 而GenericApplicationContext实现了BeanDefinitionRegistry。
+     * 所以，getBeanDefinitionRegistry将最终返回强转过的ApplicationContext。
+     * 也就是说BeanDefinition将被注册到ApplicationContext里面。
      *
      * @param context the application context
      * @return the BeanDefinitionRegistry if it can be determined
@@ -939,8 +963,7 @@ public class SpringApplication {
      * @param context the application context
      * @param args    the application arguments
      */
-    protected void afterRefresh(ConfigurableApplicationContext context,
-                                ApplicationArguments args) {
+    protected void afterRefresh(ConfigurableApplicationContext context, ApplicationArguments args) {
     }
 
     /**
