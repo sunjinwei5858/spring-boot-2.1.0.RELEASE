@@ -31,6 +31,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
+ * 注意！springboot默认的servlet项目的ApplicationContext实现类是AnnotationConfigServletWebServerApplicationContext，
+ * 所以我们会以它作为实现类来看
+ * <p>
  * {@link ServletWebServerApplicationContext} that accepts annotated classes as input - in
  * particular {@link org.springframework.context.annotation.Configuration @Configuration}
  * -annotated classes, but also plain {@link Component @Component} classes and JSR-330
@@ -49,7 +52,8 @@ import java.util.Set;
  * @see AnnotationConfigWebApplicationContext
  */
 public class AnnotationConfigServletWebServerApplicationContext
-        extends ServletWebServerApplicationContext implements AnnotationConfigRegistry {
+        extends ServletWebServerApplicationContext
+        implements AnnotationConfigRegistry {
 
     private final AnnotatedBeanDefinitionReader reader;
 

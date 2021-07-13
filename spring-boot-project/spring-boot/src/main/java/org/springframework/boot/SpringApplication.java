@@ -954,6 +954,7 @@ public class SpringApplication {
      */
     protected void refresh(ApplicationContext applicationContext) {
         Assert.isInstanceOf(AbstractApplicationContext.class, applicationContext);
+        // 因为refresh方法是AbstractApplicationContext写的
         ((AbstractApplicationContext) applicationContext).refresh();
     }
 
