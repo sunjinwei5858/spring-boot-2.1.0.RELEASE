@@ -50,6 +50,7 @@ public abstract class RegistrationBean implements ServletContextInitializer, Ord
                     + " was not registered (disabled)");
             return;
         }
+        // 2
         register(description, servletContext);
     }
 

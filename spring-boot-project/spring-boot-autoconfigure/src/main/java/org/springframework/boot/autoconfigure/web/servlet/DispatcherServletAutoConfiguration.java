@@ -115,6 +115,9 @@ public class DispatcherServletAutoConfiguration {
 
     }
 
+    /**
+     * DispatcherServletRegistrationBean负责将DispatcherServlet注册到ServletContext当中。
+     */
     @Configuration
     @Conditional(DispatcherServletRegistrationCondition.class)
     @ConditionalOnClass(ServletRegistration.class)
@@ -133,6 +136,12 @@ public class DispatcherServletAutoConfiguration {
             this.multipartConfig = multipartConfigProvider.getIfAvailable();
         }
 
+        /**
+         * DispatcherServletRegistrationBean负责将DispatcherServlet注册到ServletContext当中
+         *
+         * @param dispatcherServlet
+         * @return
+         */
         @Bean(name = DEFAULT_DISPATCHER_SERVLET_REGISTRATION_BEAN_NAME)
         @ConditionalOnBean(value = DispatcherServlet.class, name = DEFAULT_DISPATCHER_SERVLET_BEAN_NAME)
         public DispatcherServletRegistrationBean dispatcherServletRegistration(

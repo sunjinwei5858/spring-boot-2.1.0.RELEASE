@@ -16,11 +16,11 @@
 
 package org.springframework.boot.autoconfigure.web.servlet;
 
-import java.util.Collection;
-
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.util.Assert;
 import org.springframework.web.servlet.DispatcherServlet;
+
+import java.util.Collection;
 
 /**
  * {@link ServletRegistrationBean} for the auto-configured {@link DispatcherServlet}. Both
@@ -30,38 +30,39 @@ import org.springframework.web.servlet.DispatcherServlet;
  * @since 2.0.4
  */
 public class DispatcherServletRegistrationBean extends
-		ServletRegistrationBean<DispatcherServlet> implements DispatcherServletPath {
+        ServletRegistrationBean<DispatcherServlet> implements DispatcherServletPath {
 
-	private final String path;
+    private final String path;
 
-	/**
-	 * Create a new {@link DispatcherServletRegistrationBean} instance for the given
-	 * servlet and path.
-	 * @param servlet the dispatcher servlet
-	 * @param path the dispatcher servlet path
-	 */
-	public DispatcherServletRegistrationBean(DispatcherServlet servlet, String path) {
-		super(servlet);
-		Assert.notNull(path, "Path must not be null");
-		this.path = path;
-		super.addUrlMappings(getServletUrlMapping());
-	}
+    /**
+     * Create a new {@link DispatcherServletRegistrationBean} instance for the given
+     * servlet and path.
+     *
+     * @param servlet the dispatcher servlet
+     * @param path    the dispatcher servlet path
+     */
+    public DispatcherServletRegistrationBean(DispatcherServlet servlet, String path) {
+        super(servlet);
+        Assert.notNull(path, "Path must not be null");
+        this.path = path;
+        super.addUrlMappings(getServletUrlMapping());
+    }
 
-	@Override
-	public String getPath() {
-		return this.path;
-	}
+    @Override
+    public String getPath() {
+        return this.path;
+    }
 
-	@Override
-	public void setUrlMappings(Collection<String> urlMappings) {
-		throw new UnsupportedOperationException(
-				"URL Mapping cannot be changed on a DispatcherServlet registration");
-	}
+    @Override
+    public void setUrlMappings(Collection<String> urlMappings) {
+        throw new UnsupportedOperationException(
+                "URL Mapping cannot be changed on a DispatcherServlet registration");
+    }
 
-	@Override
-	public void addUrlMappings(String... urlMappings) {
-		throw new UnsupportedOperationException(
-				"URL Mapping cannot be changed on a DispatcherServlet registration");
-	}
+    @Override
+    public void addUrlMappings(String... urlMappings) {
+        throw new UnsupportedOperationException(
+                "URL Mapping cannot be changed on a DispatcherServlet registration");
+    }
 
 }

@@ -34,7 +34,7 @@ import javax.servlet.ServletException;
  * automatically bootstrapped by the Servlet container.
  * <p>
  * 因为设计者，就是不让内嵌容器支持ServletContainerInitializer。
- *
+ * <p>
  * This interface is primarily designed to allow {@link ServletContextInitializer}s to be
  * managed by Spring and not the Servlet container.
  * <p>
@@ -47,7 +47,12 @@ import javax.servlet.ServletException;
 @FunctionalInterface
 public interface ServletContextInitializer {
 
+
     /**
+     * 总的来说，其实就是触发了初始化ServletContext时候的回调接口onStartup方法，而后直接将DispatcherServlet作为一个Servlet给add到ServletContext当中。
+     *
+     * 参数servletContext就是tomcat的 一路传递下去
+     *
      * Configure the given {@link ServletContext} with any servlets, filters, listeners
      * context-params and attributes necessary for initialization.
      *

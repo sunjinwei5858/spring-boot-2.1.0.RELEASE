@@ -203,8 +203,10 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
             this.webServer = factory.getWebServer(servletContextInitializer);
 
         } else if (servletContext != null) {
+            // 如果servletContext不为空 说明有外部容器 那么直接回调ServletContextInitializer的onStartup()方法
             try {
-                getSelfInitializer().onStartup(servletContext);
+                ServletContextInitializer servletContextInitializer = getSelfInitializer();
+                servletContextInitializer.onStartup(servletContext);
             } catch (ServletException ex) {
                 throw new ApplicationContextException("Cannot initialize servlet context",
                         ex);
