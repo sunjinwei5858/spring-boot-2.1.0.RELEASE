@@ -341,6 +341,7 @@ public class SpringApplication {
              * 4 创建并配置Environment（这个过程会加载application配置文件）
              * 准备环境，springboot是单独写了一个prepareEnvironment方法进行准备环境，设置yaml配置文件
              * 而不是在spring的refresh方法中的prepareRefresh代码中进行扩展，可能是refresh的时机太晚了
+			 * 发布事件给监听器, 加载yml这些配置文件
              */
             ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 
