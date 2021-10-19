@@ -20,6 +20,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 
 /**
+ * callRunners可以调用的地方
  * Interface used to indicate that a bean should <em>run</em> when it is contained within
  * a {@link SpringApplication}. Multiple {@link CommandLineRunner} beans can be defined
  * within the same application context and can be ordered using the {@link Ordered}

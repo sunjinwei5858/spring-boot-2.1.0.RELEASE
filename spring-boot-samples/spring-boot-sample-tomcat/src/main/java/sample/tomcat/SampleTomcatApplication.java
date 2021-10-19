@@ -18,6 +18,9 @@ package sample.tomcat;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -46,6 +49,30 @@ public class SampleTomcatApplication {
 
         };
     }
+
+	@Bean
+	public CommandLineRunner runner() {
+		return new CommandLineRunner() {
+
+			@Override
+			public void run(String... args) throws Exception {
+				System.out.println("哈哈哈哈哈哈哈哈");
+			}
+
+		};
+	}
+
+	@Bean
+	public ApplicationRunner runner222() {
+		return new ApplicationRunner() {
+
+			@Override
+			public void run(ApplicationArguments args) throws Exception {
+				System.out.println("喜喜喜喜喜喜");
+			}
+
+		};
+	}
 
     public static void main(String[] args) {
         System.out.println("============");
