@@ -50,6 +50,8 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 /**
+ * 该监听器是spring的ApplicationListener监听器，多播器会广播事件到监听器上
+ *
  * {@link EnvironmentPostProcessor} that configures the context environment by loading
  * properties from well known file locations. By default properties will be loaded from
  * 'application.properties' and/or 'application.yml' files in the following locations:
@@ -137,7 +139,14 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
                 || ApplicationPreparedEvent.class.isAssignableFrom(eventType);
     }
 
-    @Override
+	/**
+	 * 这里监听器会进行判断这个event事件是不是自己想要的事件，比如这里就是判断是不是环境相关的监听器事件ApplicationEnvironmentPreparedEvent
+	 * 或者准备事件
+	 * 然后进入各自的业务逻辑
+	 *
+	 * @param event
+	 */
+	@Override
     public void onApplicationEvent(ApplicationEvent event) {
         // 只触发Environment相关的事件
         if (event instanceof ApplicationEnvironmentPreparedEvent) {
@@ -160,6 +169,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
         // 这里注意，ConfigFileApplicationListener本身也实现了EnvironmentPostProcessor接口，所以这里将会触发ConfigFileApplicationListener内部方法执行
         for (EnvironmentPostProcessor postProcessor : postProcessors) {
             // 执行后置处理器
+			// 这里就会触发自己重写的postProcessEnvironment方法
             postProcessor.postProcessEnvironment(event.getEnvironment(), event.getSpringApplication());
         }
     }
