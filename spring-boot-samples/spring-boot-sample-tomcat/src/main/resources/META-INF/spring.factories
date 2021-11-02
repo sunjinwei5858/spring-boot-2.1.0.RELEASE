@@ -1,0 +1,2 @@
+org.springframework.boot.SpringApplicationRunListener=\
+sample.tomcat.listener.HelloApplicationRunListener

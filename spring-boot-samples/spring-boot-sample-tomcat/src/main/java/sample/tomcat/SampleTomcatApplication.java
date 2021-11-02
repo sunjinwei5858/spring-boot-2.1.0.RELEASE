@@ -18,17 +18,16 @@ package sample.tomcat;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
+import org.springframework.boot.*;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.ConfigurableEnvironment;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
-@SpringBootApplication
+@SpringBootApplication()
 public class SampleTomcatApplication {
 
     private static Log logger = LogFactory.getLog(SampleTomcatApplication.class);
@@ -73,6 +72,7 @@ public class SampleTomcatApplication {
 
 		};
 	}
+
 
     public static void main(String[] args) {
         System.out.println("============");
