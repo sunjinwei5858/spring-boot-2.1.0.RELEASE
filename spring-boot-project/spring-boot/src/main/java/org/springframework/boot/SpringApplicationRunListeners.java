@@ -26,6 +26,10 @@ import java.util.Collection;
 import java.util.List;
 
 /**
+ * 调用SpringApplicationRunListeners中的方法, 实际就是调用EventPublishingRunListener同名方法
+ *
+ * 在SpringBoot（SpringApplication类）中，使用SpringApplicationRunListeners、SpringApplicationRunListener来间接调用ApplicationListener。
+ *
  * A collection of {@link SpringApplicationRunListener}.
  *
  * @author Phillip Webb

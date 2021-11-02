@@ -32,6 +32,11 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.util.ErrorHandler;
 
 /**
+ * SpringApplicationRunListener仅有一个实现类: EventPublishingRunListener,
+ * EventPublishingRunListener是一个事件发布器, 它构造出不同的Event, 通过initialMulticaster广播出去,
+ * SpringApplicationRunListeners与SpringApplicationRunListener生命周期相同，调用每个周期的各个SpringApplicationRunListener。
+ * 然后广播相应的事件到Spring框架的ApplicationListener。
+ *
  * {@link SpringApplicationRunListener} to publish {@link SpringApplicationEvent}s.
  * <p>
  * Uses an internal {@link ApplicationEventMulticaster} for the events that are fired
