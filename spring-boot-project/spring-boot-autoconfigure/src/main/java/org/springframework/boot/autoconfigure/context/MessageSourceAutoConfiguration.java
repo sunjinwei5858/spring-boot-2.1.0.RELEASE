@@ -16,15 +16,9 @@
 
 package org.springframework.boot.autoconfigure.context;
 
-import java.time.Duration;
-
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionMessage;
-import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.SearchStrategy;
-import org.springframework.boot.autoconfigure.condition.SpringBootCondition;
+import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.autoconfigure.context.MessageSourceAutoConfiguration.ResourceBundleCondition;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -40,6 +34,8 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.StringUtils;
+
+import java.time.Duration;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for {@link MessageSource}.
@@ -63,6 +59,11 @@ public class MessageSourceAutoConfiguration {
 		return new MessageSourceProperties();
 	}
 
+	/**
+	 * 在refresh方法中的initMessageSource方法中 springboot自己创建了MessageSource
+	 * @param properties
+	 * @return
+	 */
 	@Bean
 	public MessageSource messageSource(MessageSourceProperties properties) {
 		ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
@@ -89,7 +90,7 @@ public class MessageSourceAutoConfiguration {
 
 		@Override
 		public ConditionOutcome getMatchOutcome(ConditionContext context,
-				AnnotatedTypeMetadata metadata) {
+												AnnotatedTypeMetadata metadata) {
 			String basename = context.getEnvironment()
 					.getProperty("spring.messages.basename", "messages");
 			ConditionOutcome outcome = cache.get(basename);
@@ -101,7 +102,7 @@ public class MessageSourceAutoConfiguration {
 		}
 
 		private ConditionOutcome getMatchOutcomeForBasename(ConditionContext context,
-				String basename) {
+															String basename) {
 			ConditionMessage.Builder message = ConditionMessage
 					.forCondition("ResourceBundle");
 			for (String name : StringUtils.commaDelimitedListToStringArray(
@@ -122,8 +123,7 @@ public class MessageSourceAutoConfiguration {
 			try {
 				return new PathMatchingResourcePatternResolver(classLoader)
 						.getResources("classpath*:" + target + ".properties");
-			}
-			catch (Exception ex) {
+			} catch (Exception ex) {
 				return NO_RESOURCES;
 			}
 		}
